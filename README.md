@@ -105,7 +105,12 @@ http://127.0.0.1:8000/docs
 * Clean architecture
 * API integration
 
-🚧 Coming Next
+## ✅ Version 0.2 — Memory System
+
+* Persistent chat history using PostgreSQL
+* Context-aware responses using conversation memory
+* Multi-turn AI conversations
+
 
 * Memory system
 * Vector search (FAISS)

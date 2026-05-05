@@ -5,3 +5,5 @@ openai
 sqlalchemy
 psycopg2-binary
 alembic
+faiss-cpu
+numpy 
