@@ -99,17 +99,26 @@ http://127.0.0.1:8000/docs
 
 ## 🎯 Current Status
 
-✅ Day 1 Complete
+## AI Chatbot (LLM) ✔ v0.1
 
+* Basic AI chat implemented
 * Basic AI Chat
 * Clean architecture
 * API integration
 
-## ✅ Version 0.2 — Memory System
+## ✅ Version v0.2— Memory System (Context)
 
 * Persistent chat history using PostgreSQL
 * Context-aware responses using conversation memory
 * Multi-turn AI conversations
+
+## 🚀 Version v0.3 — RAG System (Knowledge-Based AI)
+
+* Implemented embeddings using OpenAI API
+* Integrated FAISS vector database for semantic search
+* Built document ingestion pipeline
+* Enabled Retrieval-Augmented Generation (RAG)
+* Chatbot now answers based on custom knowledge base
 
 
 * Memory system
