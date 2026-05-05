@@ -12,7 +12,8 @@ class VectorStore:
         self.index.add(vectors)
         self.texts.extend(texts)
 
-    def search(self, query_embedding, k=3):
+    # ✅ NEW METHOD (THIS IS WHAT YOU WERE MISSING)
+    def search_with_scores(self, query_embedding, k=5):
         if len(self.texts) == 0:
             return []
 
@@ -20,12 +21,38 @@ class VectorStore:
         distances, indices = self.index.search(query, k)
 
         results = []
-        for i in indices[0]:
-            if i < len(self.texts):
-                results.append(self.texts[i])
+
+        for i, idx in enumerate(indices[0]):
+            if idx < len(self.texts):
+                results.append({
+                    "text": self.texts[idx],
+                    "score": float(distances[0][i])
+                })
 
         return results
 
 
 # Singleton instance
 vector_store = VectorStore()
+
+
+# Singleton instance
+vector_store = VectorStore()
+
+def search_with_scores(self, query_embedding, k=5):
+    if len(self.texts) == 0:
+        return []
+
+    query = np.array([query_embedding]).astype("float32")
+    distances, indices = self.index.search(query, k)
+
+    results = []
+
+    for i, idx in enumerate(indices[0]):
+        if idx < len(self.texts):
+            results.append({
+                "text": self.texts[idx],
+                "score": float(distances[0][i])
+            })
+
+    return results

@@ -120,6 +120,13 @@ http://127.0.0.1:8000/docs
 * Enabled Retrieval-Augmented Generation (RAG)
 * Chatbot now answers based on custom knowledge base
 
+## 🚀 Version v0.4 — Document Upload (PDF → RAG)
+
+* File upload support (PDF, TXT)
+* Text extraction using PyPDF2
+* Chunk-based document processing
+* Integration with FAISS vector database
+* AI can now answer questions from uploaded documents
 
 * Memory system
 * Vector search (FAISS)
