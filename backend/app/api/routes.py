@@ -1,22 +1,29 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.chat_service import generate_chat_response
+from app.db.database import SessionLocal
 
 router = APIRouter()
 
 
-@router.post("/chat", response_model=ChatResponse)
-def chat_endpoint(request: ChatRequest):
+def get_db():
+    db = SessionLocal()
     try:
-        reply = generate_chat_response(request.message)
+        yield db
+    finally:
+        db.close()
 
-        return ChatResponse(
-            message=request.message,
-            reply=reply
-        )
 
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error"
-        )
+@router.post("/chat", response_model=ChatResponse)
+def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
+    reply = generate_chat_response(
+        request.message,
+        db,
+        request.session_id
+    )
+
+    return ChatResponse(
+        message=request.message,
+        reply=reply
+    )
