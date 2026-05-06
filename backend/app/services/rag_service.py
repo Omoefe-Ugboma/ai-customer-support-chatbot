@@ -1,22 +1,85 @@
-from app.services.embedding_service import get_embedding
+from openai import OpenAI
+from app.core.config import settings
 from app.services.vector_store import vector_store
-from app.services.rerank_service import rerank_results
-from app.services.context_service import clean_context
+
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
-def retrieve_context(query: str):
-    query_embedding = get_embedding(query)
+# =========================
+# 🧠 1. QUERY REWRITING
+# =========================
+def rewrite_query(query: str) -> str:
+    """
+    Convert vague user queries into clear semantic search queries
+    Example:
+    "How much do I pay?" → "What is the tuition fee?"
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Rewrite the user question into a clear, specific search query. "
+                        "Keep it short and meaningful."
+                    )
+                },
+                {"role": "user", "content": query}
+            ],
+            temperature=0
+        )
 
-    # Step 1: Get raw results
-    raw_results = vector_store.search_with_scores(query_embedding, k=5)
+        return response.choices[0].message.content.strip()
 
-    # Step 2: Re-rank
-    ranked = rerank_results(raw_results, top_k=3)
+    except Exception:
+        return query  # fallback
 
-    # Step 3: Extract text
-    chunks = [r["text"] for r in ranked]
 
-    # Step 4: Clean
-    context = clean_context(chunks)
+# =========================
+# 🔎 2. KEYWORD FALLBACK
+# =========================
+def keyword_fallback(query: str, documents: list[str]) -> list[str]:
+    """
+    Simple keyword search if semantic search fails
+    """
+    results = []
+
+    for doc in documents:
+        if any(word.lower() in doc.lower() for word in query.split()):
+            results.append(doc)
+
+    return results[:5]
+
+
+# =========================
+# 🧠 3. CONTEXT RETRIEVAL
+# =========================
+def retrieve_context(query: str) -> str:
+    """
+    Full smart retrieval pipeline:
+    1. Rewrite query
+    2. Semantic search
+    3. Keyword fallback
+    """
+
+    # 🔥 Step 1: Improve query
+    improved_query = rewrite_query(query)
+
+    print(f"🔍 Original Query: {query}")
+    print(f"🧠 Rewritten Query: {improved_query}")
+
+    # 🔥 Step 2: Semantic search
+    results = vector_store.search(improved_query, k=5)
+
+    # 🔥 Step 3: Fallback if no results
+    if not results:
+        print("⚠️ Using keyword fallback...")
+        results = keyword_fallback(query, vector_store.documents)
+
+    # 🔥 Step 4: Return formatted context
+    context = "\n".join(results) if results else ""
+
+    print(f"📄 Retrieved Context:\n{context}")
 
     return context

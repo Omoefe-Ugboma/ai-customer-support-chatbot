@@ -128,6 +128,15 @@ http://127.0.0.1:8000/docs
 * Integration with FAISS vector database
 * AI can now answer questions from uploaded documents
 
+## 🚀 Version v0.5 — Advanced RAG (Production-Level)
+
+* Top-K retrieval with similarity scoring
+* Re-ranking layer for improved relevance
+* Context cleaning to remove duplicates
+* Prompt optimization to reduce hallucination
+* Optional caching for performance
+* Enhanced response accuracy and reliability
+
 * Memory system
 * Vector search (FAISS)
 * Document upload (RAG)

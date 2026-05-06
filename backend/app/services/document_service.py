@@ -16,4 +16,4 @@ def add_documents(texts: list[str]):
         emb = get_embedding(chunk)
         embeddings.append(emb)
 
-    vector_store.add(embeddings, all_chunks)
+    vector_store.add_documents(all_chunks) 

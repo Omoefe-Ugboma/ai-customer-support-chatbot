@@ -1,9 +1,35 @@
 cache = {}
 
 
-def get_cached(query: str):
-    return cache.get(query)
+# =========================
+# GET CACHE
+# =========================
+def get_cached(
+    session_id: str,
+    query: str
+):
+
+    return cache.get(
+        f"{session_id}:{query}"
+    )
 
 
-def set_cache(query: str, response: str):
-    cache[query] = response
+# =========================
+# SET CACHE
+# =========================
+def set_cache(
+    session_id: str,
+    query: str,
+    response: str
+):
+
+    cache[
+        f"{session_id}:{query}"
+    ] = response
+
+
+# =========================
+# CLEAR CACHE
+# =========================
+def clear_cache():
+    cache.clear()
