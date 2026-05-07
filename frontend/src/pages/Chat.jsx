@@ -1,134 +1,302 @@
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import Layout from "../components/Layout";
 
-import { sendMessage } from "../services/chatService";
+import ChatMessage
+from "../components/ChatMessage";
+
+import TypingIndicator
+from "../components/TypingIndicator";
+
+import ConversationSidebar
+from "../components/ConversationSidebar";
+
+import { sendMessage }
+from "../services/chatService";
+
 
 export default function Chat() {
 
-  const [message, setMessage] = useState("");
+  // =========================
+  // CONVERSATIONS
+  // =========================
+  const [conversations,
+    setConversations] = useState([
+    {
+      id: 1,
+      title: "New Conversation",
+      messages: [],
+    },
+  ]);
 
-  const [messages, setMessages] = useState([]);
+  const [activeConversation,
+    setActiveConversation] =
+    useState(1);
 
-  const [loading, setLoading] = useState(false);
+  const [message,
+    setMessage] =
+    useState("");
 
-  const handleSend = async () => {
+  const [loading,
+    setLoading] =
+    useState(false);
 
-    if (!message.trim()) return;
+  const messagesEndRef =
+    useRef(null);
 
-    const userMessage = {
-      role: "user",
-      content: message,
-    };
+  // =========================
+  // ACTIVE CHAT
+  // =========================
+  const currentConversation =
+    conversations.find(
+      (c) =>
+        c.id === activeConversation
+    );
 
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-    ]);
+  // =========================
+  // AUTO SCROLL
+  // =========================
+  useEffect(() => {
 
-    setLoading(true);
+    messagesEndRef.current
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
 
-    try {
+  }, [currentConversation]);
 
-      const response =
-        await sendMessage(message);
+  // =========================
+  // NEW CHAT
+  // =========================
+  const createConversation =
+    () => {
 
-      const aiMessage = {
-        role: "assistant",
-        content: response.reply,
+      const newConversation = {
+        id: Date.now(),
+        title: "New Conversation",
+        messages: [],
       };
 
-      setMessages((prev) => [
+      setConversations((prev) => [
+        newConversation,
         ...prev,
-        aiMessage,
       ]);
 
-    } catch (error) {
+      setActiveConversation(
+        newConversation.id
+      );
+    };
 
-      console.error(error);
+  // =========================
+  // SEND MESSAGE
+  // =========================
+  const handleSend =
+    async () => {
 
-      alert("Chat failed");
+      if (!message.trim())
+        return;
 
-    } finally {
+      const userMessage = {
+        role: "user",
+        content: message,
+        timestamp: new Date(),
+      };
 
-      setLoading(false);
+      updateConversationMessages(
+        userMessage
+      );
 
-    }
+      const currentMessage =
+        message;
 
-    setMessage("");
+      setMessage("");
 
-  };
+      setLoading(true);
+
+      try {
+
+        const response =
+          await sendMessage(
+            currentMessage
+          );
+
+        const aiMessage = {
+          role: "assistant",
+          content: response.reply,
+          timestamp: new Date(),
+        };
+
+        updateConversationMessages(
+          aiMessage
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+      } finally {
+
+        setLoading(false);
+
+      }
+    };
+
+  // =========================
+  // UPDATE CHAT
+  // =========================
+  const updateConversationMessages =
+    (newMessage) => {
+
+      setConversations((prev) =>
+        prev.map((conversation) => {
+
+          if (
+            conversation.id !==
+            activeConversation
+          ) {
+            return conversation;
+          }
+
+          const updatedMessages = [
+            ...conversation.messages,
+            newMessage,
+          ];
+
+          return {
+            ...conversation,
+            title:
+              conversation.messages
+                .length === 0
+                ? newMessage.content
+                    .slice(0, 30)
+                : conversation.title,
+            messages:
+              updatedMessages,
+          };
+        })
+      );
+    };
+
+  // =========================
+  // ENTER TO SEND
+  // =========================
+  const handleKeyDown =
+    (e) => {
+
+      if (
+        e.key === "Enter" &&
+        !e.shiftKey
+      ) {
+
+        e.preventDefault();
+
+        handleSend();
+      }
+    };
 
   return (
     <Layout>
 
-      <div className="flex flex-col h-full">
+      <div className="flex h-full gap-6">
 
-        <div className="mb-6">
+        {/* SIDEBAR */}
+        <ConversationSidebar
+          conversations={conversations}
+          activeConversation={
+            activeConversation
+          }
+          setActiveConversation={
+            setActiveConversation
+          }
+          createConversation={
+            createConversation
+          }
+        />
 
-          <h1 className="text-4xl font-bold">
-            AI Chat
-          </h1>
+        {/* CHAT */}
+        <div className="flex-1 flex flex-col">
 
-          <p className="text-slate-400 mt-2">
-            Ask your AI assistant anything.
-          </p>
+          {/* HEADER */}
+          <div className="mb-6">
 
-        </div>
+            <h1 className="text-4xl font-bold">
+              AI Assistant
+            </h1>
 
-        {/* CHAT AREA */}
-        <div className="flex-1 bg-slate-900 rounded-2xl border border-slate-800 p-6 overflow-y-auto space-y-4">
+            <p className="text-slate-400 mt-2">
+              Ask anything.
+            </p>
 
-          {messages.length === 0 && (
+          </div>
 
-            <div className="text-slate-500">
-              No messages yet.
+          {/* MESSAGES */}
+          <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+
+            {currentConversation
+              ?.messages.length === 0 && (
+
+              <div className="h-full flex items-center justify-center text-slate-500 text-lg">
+
+                Start a conversation...
+
+              </div>
+
+            )}
+
+            {currentConversation
+              ?.messages.map(
+                (msg, index) => (
+
+                <ChatMessage
+                  key={index}
+                  message={msg}
+                />
+
+              ))}
+
+            {loading && (
+              <TypingIndicator />
+            )}
+
+            <div ref={messagesEndRef} />
+
+          </div>
+
+          {/* INPUT */}
+          <div className="mt-6">
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-end gap-4">
+
+              <textarea
+                value={message}
+                onChange={(e) =>
+                  setMessage(
+                    e.target.value
+                  )
+                }
+                onKeyDown={
+                  handleKeyDown
+                }
+                rows={1}
+                placeholder="Message AI..."
+                className="flex-1 resize-none bg-transparent outline-none text-white"
+              />
+
+              <button
+                onClick={handleSend}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl disabled:opacity-50"
+              >
+                Send
+              </button>
+
             </div>
 
-          )}
-
-          {messages.map((msg, index) => (
-
-            <div
-              key={index}
-              className={`max-w-[75%] p-4 rounded-2xl ${
-                msg.role === "user"
-                  ? "bg-blue-600 ml-auto"
-                  : "bg-slate-800"
-              }`}
-            >
-              {msg.content}
-            </div>
-
-          ))}
-
-          {loading && (
-            <div className="text-slate-400">
-              AI is thinking...
-            </div>
-          )}
-
-        </div>
-
-        {/* INPUT */}
-        <div className="mt-4 flex gap-3">
-
-          <input
-            type="text"
-            value={message}
-            onChange={(e) =>
-              setMessage(e.target.value)
-            }
-            placeholder="Type your message..."
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 outline-none"
-          />
-
-          <button
-            onClick={handleSend}
-            className="bg-blue-600 hover:bg-blue-700 px-6 rounded-xl transition"
-          >
-            Send
-          </button>
+          </div>
 
         </div>
 

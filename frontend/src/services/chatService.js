@@ -8,7 +8,7 @@ export async function sendMessage(
     "/chat",
     {
       message,
-      session_id: "frontend-session",
+      session_id: "frontend-chat",
     }
   );
 
