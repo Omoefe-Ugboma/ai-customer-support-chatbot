@@ -15,9 +15,10 @@ from "../components/TypingIndicator";
 import ConversationSidebar
 from "../components/ConversationSidebar";
 
-import { sendMessage }
+// import { sendMessage }
+// from "../services/chatService";
+import { streamMessage }
 from "../services/chatService";
-
 
 export default function Chat() {
 
@@ -94,56 +95,98 @@ export default function Chat() {
   // =========================
   // SEND MESSAGE
   // =========================
-  const handleSend =
-    async () => {
+  const handleSend = async () => {
 
-      if (!message.trim())
-        return;
+    if (!message.trim())
+      return;
 
-      const userMessage = {
-        role: "user",
-        content: message,
-        timestamp: new Date(),
-      };
+    const userMessage = {
+      role: "user",
+      content: message,
+      timestamp: new Date(),
+    };
 
-      updateConversationMessages(
-        userMessage
+    updateConversationMessages(
+      userMessage
+    );
+
+    const currentMessage =
+      message;
+
+    setMessage("");
+
+    setLoading(true);
+
+    // TEMP AI MESSAGE
+    const aiMessage = {
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+    };
+
+    updateConversationMessages(
+      aiMessage
+    );
+
+    try {
+
+      await streamMessage(
+        currentMessage,
+
+        (chunk) => {
+
+          setConversations(
+            (prev) =>
+              prev.map(
+                (conversation) => {
+
+                  if (
+                    conversation.id !==
+                    activeConversation
+                  ) {
+                    return conversation;
+                  }
+
+                  const updated =
+                    [
+                      ...conversation.messages,
+                    ];
+
+                  const lastMessage =
+                    updated[
+                      updated.length - 1
+                    ];
+
+                  if (
+                    lastMessage.role ===
+                    "assistant"
+                  ) {
+
+                    lastMessage.content +=
+                      chunk;
+                  }
+
+                  return {
+                    ...conversation,
+                    messages:
+                      updated,
+                  };
+                }
+              )
+          );
+        }
       );
 
-      const currentMessage =
-        message;
+    } catch (error) {
 
-      setMessage("");
+      console.error(error);
 
-      setLoading(true);
+    } finally {
 
-      try {
+      setLoading(false);
 
-        const response =
-          await sendMessage(
-            currentMessage
-          );
-
-        const aiMessage = {
-          role: "assistant",
-          content: response.reply,
-          timestamp: new Date(),
-        };
-
-        updateConversationMessages(
-          aiMessage
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-      } finally {
-
-        setLoading(false);
-
-      }
-    };
+    }
+  };
 
   // =========================
   // UPDATE CHAT

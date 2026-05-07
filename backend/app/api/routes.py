@@ -20,6 +20,12 @@ from app.services.cache_service import clear_cache
 # 🔐 Auth
 from app.api.deps import get_current_user
 
+from fastapi.responses import StreamingResponse
+
+from app.services.chat_stream_service import (
+    generate_streaming_response,
+)
+
 router = APIRouter()
 
 
@@ -61,6 +67,31 @@ def chat_endpoint(
     return ChatResponse(
         message=request.message,
         reply=reply
+    )
+
+
+# =========================
+# STREAMING CHAT
+# =========================
+@router.post("/chat/stream")
+async def stream_chat(
+    request: ChatRequest,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+
+    async def event_generator():
+
+        async for chunk in generate_streaming_response(
+            message=request.message,
+            db=db,
+            session_id=user.email,
+        ):
+            yield chunk
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/plain",
     )
 
 # =========================
