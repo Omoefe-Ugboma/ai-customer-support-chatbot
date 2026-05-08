@@ -92,10 +92,21 @@ export default function ChatMessage({
         {/* TIME */}
         <div className="text-xs text-slate-400 mt-3 text-right">
 
-          {format(
-            new Date(message.timestamp),
-            "HH:mm"
-          )}
+          {message.timestamp ||
+              message.created_at
+                ? format(
+
+                    new Date(
+
+                      message.timestamp ||
+                      message.created_at
+                    ),
+
+                    "HH:mm"
+                  )
+
+                : "--:--"
+                }
 
         </div>
 

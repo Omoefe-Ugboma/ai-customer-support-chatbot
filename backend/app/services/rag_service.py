@@ -66,20 +66,20 @@ def retrieve_context(query: str) -> str:
     # 🔥 Step 1: Improve query
     improved_query = rewrite_query(query)
 
-    print(f"🔍 Original Query: {query}")
-    print(f"🧠 Rewritten Query: {improved_query}")
+    print(f"[OK] Original Query: {query}")
+    print(f"[OK] Rewritten Query: {improved_query}")
 
     # 🔥 Step 2: Semantic search
     results = vector_store.search(improved_query, k=5)
 
     # 🔥 Step 3: Fallback if no results
     if not results:
-        print("⚠️ Using keyword fallback...")
+        print("[OK] Using keyword fallback...")
         results = keyword_fallback(query, vector_store.documents)
 
     # 🔥 Step 4: Return formatted context
     context = "\n".join(results) if results else ""
 
-    print(f"📄 Retrieved Context:\n{context}")
+    print(f"[OK] Retrieved Context:\n{context}")
 
     return context

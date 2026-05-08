@@ -51,7 +51,7 @@ def generate_chat_response(
         )
 
         if cached_response:
-            logger.info("⚡ Cache hit")
+            logger.info("[OK] Cache hit")
 
             return cached_response
 
@@ -163,7 +163,7 @@ def generate_chat_response(
     except Exception as e:
 
         logger.error(
-            f"❌ Chat error: {str(e)}"
+            f"[OK] Chat error: {str(e)}"
         )
 
         return "Something went wrong"

@@ -13,7 +13,7 @@ class VectorStore:
         self.index = None
         self.dimension = 1536  # OpenAI embedding size
 
-        print("✅ VectorStore initialized")
+        print("[OK] VectorStore initialized")
 
     # =========================
     # 🔢 CREATE EMBEDDING
@@ -48,7 +48,7 @@ class VectorStore:
         self.index = faiss.IndexFlatL2(self.dimension)
         self.index.add(self.embeddings)
 
-        print(f"📥 Added {len(texts)} documents to vector store")
+        print(f"[OK] Added {len(texts)} documents to vector store")
 
     # =========================
     # 🔎 SEARCH
@@ -67,7 +67,7 @@ class VectorStore:
             if 0 <= idx < len(self.documents):
                 results.append(self.documents[idx])
 
-        print(f"🔎 Retrieved {len(results)} results from vector store")
+        print(f"[OK] Retrieved {len(results)} results from vector store")
 
         return results
 
@@ -79,7 +79,7 @@ class VectorStore:
         self.embeddings = None
         self.index = None
 
-        print("🧹 Vector store reset")
+        print("[OK] Vector store reset")
 
 
 # Singleton instance

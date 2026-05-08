@@ -17,8 +17,17 @@ import {
 } from "../services/chatService";
 
 import {
+
   createThread,
+
+  getThreads,
+
+  getThreadMessages,
+
+  renameThread,
+
 } from "../services/threadService";
+
 
 export default function Chat() {
 
@@ -49,13 +58,71 @@ export default function Chat() {
     useRef(null);
 
   // =========================
-  // ACTIVE CONVERSATION
+  // CURRENT CONVERSATION
   // =========================
   const currentConversation =
     conversations.find(
-      (c) =>
-        c.id === activeConversation
+      (conversation) =>
+        conversation.id ===
+        activeConversation
     );
+
+  // =========================
+  // LOAD THREADS ONLY
+  // =========================
+  const loadThreads =
+    async () => {
+
+      try {
+
+        const threads =
+          await getThreads();
+
+        const formattedThreads =
+          threads.map(
+            (thread) => ({
+
+              ...thread,
+
+              messages:
+                thread.messages || [],
+            })
+          );
+
+        setConversations(
+          formattedThreads
+        );
+
+        // RESTORE THREAD
+        const savedThreadId =
+          localStorage.getItem(
+            "activeThreadId"
+          );
+
+        if (savedThreadId) {
+
+          handleConversationChange(
+            Number(savedThreadId)
+          );
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Load threads error:",
+          error
+        );
+      }
+    };
+
+  // =========================
+  // INITIAL LOAD
+  // =========================
+  useEffect(() => {
+
+    loadThreads();
+
+  }, []);
 
   // =========================
   // AUTO SCROLL
@@ -102,10 +169,68 @@ export default function Chat() {
           backendThread.id
         );
 
+        localStorage.setItem(
+          "activeThreadId",
+          backendThread.id
+        );
+
       } catch (error) {
 
         console.error(
-          "Create thread error:",
+          "Create conversation error:",
+          error
+        );
+      }
+    };
+
+  // =========================
+  // LOAD SINGLE THREAD
+  // =========================
+  const handleConversationChange =
+    async (threadId) => {
+
+      try {
+
+        setActiveConversation(
+          threadId
+        );
+
+        localStorage.setItem(
+          "activeThreadId",
+          threadId
+        );
+
+        const messages =
+          await getThreadMessages(
+            threadId
+          );
+
+        setConversations(
+          (prev) =>
+            prev.map(
+              (conversation) => {
+
+                if (
+                  conversation.id !==
+                  threadId
+                ) {
+                  return conversation;
+                }
+
+                return {
+
+                  ...conversation,
+
+                  messages,
+                };
+              }
+            )
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Thread load error:",
           error
         );
       }
@@ -118,7 +243,8 @@ export default function Chat() {
     async () => {
 
       if (
-        !message.trim()
+        !message.trim() ||
+        loading
       ) {
         return;
       }
@@ -127,7 +253,7 @@ export default function Chat() {
         activeConversation;
 
       // =========================
-      // CREATE THREAD IF NONE
+      // CREATE THREAD
       // =========================
       if (!currentThreadId) {
 
@@ -144,7 +270,6 @@ export default function Chat() {
             id: backendThread.id,
 
             title:
-              backendThread.title ||
               "New Chat",
 
             messages: [],
@@ -161,10 +286,15 @@ export default function Chat() {
             backendThread.id
           );
 
+          localStorage.setItem(
+            "activeThreadId",
+            backendThread.id
+          );
+
         } catch (error) {
 
           console.error(
-            "Failed to create thread:",
+            "Thread creation failed:",
             error
           );
 
@@ -173,7 +303,7 @@ export default function Chat() {
       }
 
       const currentMessage =
-        message;
+        message.trim();
 
       setMessage("");
 
@@ -193,7 +323,7 @@ export default function Chat() {
       };
 
       // =========================
-      // EMPTY AI MESSAGE
+      // AI PLACEHOLDER
       // =========================
       const aiMessage = {
 
@@ -206,7 +336,7 @@ export default function Chat() {
       };
 
       // =========================
-      // ADD BOTH MESSAGES
+      // UPDATE UI
       // =========================
       setConversations(
         (prev) =>
@@ -225,13 +355,18 @@ export default function Chat() {
                 ...conversation,
 
                 title:
-                  conversation.messages
-                    .length === 0
-                    ? currentMessage
-                        .slice(0, 30)
+                  conversation.title ===
+                  "New Chat"
+
+                    ? currentMessage.slice(
+                        0,
+                        30
+                      )
+
                     : conversation.title,
 
                 messages: [
+
                   ...(conversation.messages || []),
 
                   userMessage,
@@ -245,6 +380,22 @@ export default function Chat() {
 
       try {
 
+        // =========================
+        // RENAME THREAD
+        // =========================
+        await renameThread(
+
+          currentThreadId,
+
+          currentMessage.slice(
+            0,
+            30
+          )
+        );
+
+        // =========================
+        // STREAM RESPONSE
+        // =========================
         await streamMessage(
 
           currentMessage,
@@ -274,7 +425,6 @@ export default function Chat() {
                     const lastIndex =
                       messages.length - 1;
 
-                    // IMMUTABLE UPDATE
                     messages[
                       lastIndex
                     ] = {
@@ -334,36 +484,47 @@ export default function Chat() {
     };
 
   return (
+
     <Layout>
 
       <div className="flex h-full gap-6">
 
         {/* SIDEBAR */}
         <ConversationSidebar
-          conversations={conversations}
+
+          conversations={
+            conversations
+          }
+
           activeConversation={
             activeConversation
           }
+
           setActiveConversation={
-            setActiveConversation
+            handleConversationChange
           }
+
           createConversation={
             createConversation
           }
         />
 
-        {/* CHAT AREA */}
+        {/* CHAT */}
         <div className="flex-1 flex flex-col">
 
           {/* HEADER */}
           <div className="mb-6">
 
             <h1 className="text-4xl font-bold text-white">
+
               AI Assistant
+
             </h1>
 
             <p className="text-slate-400 mt-2">
+
               Ask anything.
+
             </p>
 
           </div>
@@ -436,7 +597,9 @@ export default function Chat() {
 
                 className="bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl disabled:opacity-50 text-white"
               >
+
                 Send
+
               </button>
 
             </div>

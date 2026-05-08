@@ -6,24 +6,12 @@ import api from "../api/axios";
 // =========================
 export async function createThread() {
 
-  try {
-
-    const response =
-      await api.post(
-        "/threads/"
-      );
-
-    return response.data;
-
-  } catch (error) {
-
-    console.error(
-      "Create thread error:",
-      error
+  const response =
+    await api.post(
+      "/threads/"
     );
 
-    throw error;
-  }
+  return response.data;
 }
 
 
@@ -32,24 +20,28 @@ export async function createThread() {
 // =========================
 export async function getThreads() {
 
-  try {
-
-    const response =
-      await api.get(
-        "/threads/"
-      );
-
-    return response.data || [];
-
-  } catch (error) {
-
-    console.error(
-      "Get threads error:",
-      error
+  const response =
+    await api.get(
+      "/threads/"
     );
 
-    return [];
-  }
+  return response.data;
+}
+
+
+// =========================
+// GET THREAD MESSAGES
+// =========================
+export async function getThreadMessages(
+  threadId
+) {
+
+  const response =
+    await api.get(
+      `/threads/${threadId}/messages`
+    );
+
+  return response.data;
 }
 
 
@@ -60,23 +52,9 @@ export async function deleteThread(
   threadId
 ) {
 
-  try {
-
-    await api.delete(
-      `/threads/${threadId}`
-    );
-
-    return true;
-
-  } catch (error) {
-
-    console.error(
-      "Delete thread error:",
-      error
-    );
-
-    return false;
-  }
+  await api.delete(
+    `/threads/${threadId}`
+  );
 }
 
 
@@ -88,53 +66,13 @@ export async function renameThread(
   title
 ) {
 
-  try {
-
-    const response =
-      await api.put(
-        `/threads/${threadId}`,
-        {
-          title,
-        }
-      );
-
-    return response.data;
-
-  } catch (error) {
-
-    console.error(
-      "Rename thread error:",
-      error
+  const response =
+    await api.put(
+      `/threads/${threadId}`,
+      {
+        title,
+      }
     );
 
-    throw error;
-  }
-}
-
-
-// =========================
-// GET SINGLE THREAD
-// =========================
-export async function getThread(
-  threadId
-) {
-
-  try {
-
-    const response =
-      await api.get(
-        `/threads/${threadId}`
-      );
-
-    return response.data;
-
-  } catch (error) {
-
-    console.error(
-      "Get thread error:",
-      error
-    );
-
-    throw error;
-  }
+  return response.data;
 }
