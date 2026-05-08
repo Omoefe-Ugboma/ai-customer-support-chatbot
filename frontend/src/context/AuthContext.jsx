@@ -1,65 +1,120 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
 } from "react";
 
 
-const AuthContext = createContext(null);
+// =========================
+// CONTEXT
+// =========================
+const AuthContext =
+  createContext();
 
 
+// =========================
+// PROVIDER
+// =========================
 export function AuthProvider({
   children,
 }) {
 
-  const [token, setToken] = useState(
-    localStorage.getItem("token")
+  const [
+    token,
+    setToken,
+  ] = useState(
+    localStorage.getItem(
+      "token"
+    ) || null
   );
 
-  const login = (jwt) => {
+  const [
+    user,
+    setUser,
+  ] = useState(
+
+    JSON.parse(
+      localStorage.getItem(
+        "user"
+      ) || "null"
+    )
+  );
+
+  // =========================
+  // LOGIN
+  // =========================
+  const login = (
+    tokenValue,
+    userData
+  ) => {
 
     localStorage.setItem(
       "token",
-      jwt
+      tokenValue
     );
 
-    setToken(jwt);
+    localStorage.setItem(
+      "user",
+      JSON.stringify(
+        userData
+      )
+    );
+
+    setToken(tokenValue);
+
+    setUser(userData);
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
   const logout = () => {
 
     localStorage.removeItem(
       "token"
     );
 
+    localStorage.removeItem(
+      "user"
+    );
+
     setToken(null);
+
+    setUser(null);
   };
 
   return (
+
     <AuthContext.Provider
       value={{
+
         token,
+
+        user,
+
         login,
+
         logout,
+
+        isAuthenticated:
+          !!token,
       }}
     >
+
       {children}
+
     </AuthContext.Provider>
   );
 }
 
 
+// =========================
+// HOOK
+// =========================
 export function useAuth() {
 
-  const context = useContext(
+  return useContext(
     AuthContext
   );
-
-  if (!context) {
-    throw new Error(
-      "useAuth must be used inside AuthProvider"
-    );
-  }
-
-  return context;
 }

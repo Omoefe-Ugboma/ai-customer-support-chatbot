@@ -6,51 +6,50 @@ import {
 
 import Layout from "../components/Layout";
 
-import ChatMessage
-from "../components/ChatMessage";
+import ChatMessage from "../components/ChatMessage";
 
-import TypingIndicator
-from "../components/TypingIndicator";
+import TypingIndicator from "../components/TypingIndicator";
 
-import ConversationSidebar
-from "../components/ConversationSidebar";
+import ConversationSidebar from "../components/ConversationSidebar";
 
-// import { sendMessage }
-// from "../services/chatService";
-import { streamMessage }
-from "../services/chatService";
+import {
+  streamMessage,
+} from "../services/chatService";
+
+import {
+  createThread,
+} from "../services/threadService";
 
 export default function Chat() {
 
   // =========================
-  // CONVERSATIONS
+  // STATE
   // =========================
-  const [conversations,
-    setConversations] = useState([
-    {
-      id: 1,
-      title: "New Conversation",
-      messages: [],
-    },
-  ]);
+  const [
+    conversations,
+    setConversations,
+  ] = useState([]);
 
-  const [activeConversation,
-    setActiveConversation] =
-    useState(1);
+  const [
+    activeConversation,
+    setActiveConversation,
+  ] = useState(null);
 
-  const [message,
-    setMessage] =
-    useState("");
+  const [
+    message,
+    setMessage,
+  ] = useState("");
 
-  const [loading,
-    setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
   const messagesEndRef =
     useRef(null);
 
   // =========================
-  // ACTIVE CHAT
+  // ACTIVE CONVERSATION
   // =========================
   const currentConversation =
     conversations.find(
@@ -71,157 +70,250 @@ export default function Chat() {
   }, [currentConversation]);
 
   // =========================
-  // NEW CHAT
+  // CREATE CONVERSATION
   // =========================
   const createConversation =
-    () => {
+    async () => {
 
-      const newConversation = {
-        id: Date.now(),
-        title: "New Conversation",
-        messages: [],
-      };
+      try {
 
-      setConversations((prev) => [
-        newConversation,
-        ...prev,
-      ]);
+        const backendThread =
+          await createThread();
 
-      setActiveConversation(
-        newConversation.id
-      );
+        const newConversation = {
+
+          id: backendThread.id,
+
+          title:
+            backendThread.title ||
+            "New Chat",
+
+          messages: [],
+        };
+
+        setConversations(
+          (prev) => [
+            newConversation,
+            ...prev,
+          ]
+        );
+
+        setActiveConversation(
+          backendThread.id
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Create thread error:",
+          error
+        );
+      }
     };
 
   // =========================
   // SEND MESSAGE
   // =========================
-  const handleSend = async () => {
+  const handleSend =
+    async () => {
 
-    if (!message.trim())
-      return;
+      if (
+        !message.trim()
+      ) {
+        return;
+      }
 
-    const userMessage = {
-      role: "user",
-      content: message,
-      timestamp: new Date(),
-    };
+      let currentThreadId =
+        activeConversation;
 
-    updateConversationMessages(
-      userMessage
-    );
+      // =========================
+      // CREATE THREAD IF NONE
+      // =========================
+      if (!currentThreadId) {
 
-    const currentMessage =
-      message;
+        try {
 
-    setMessage("");
+          const backendThread =
+            await createThread();
 
-    setLoading(true);
+          currentThreadId =
+            backendThread.id;
 
-    // TEMP AI MESSAGE
-    const aiMessage = {
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-    };
+          const newConversation = {
 
-    updateConversationMessages(
-      aiMessage
-    );
+            id: backendThread.id,
 
-    try {
+            title:
+              backendThread.title ||
+              "New Chat",
 
-      await streamMessage(
-        currentMessage,
-
-        (chunk) => {
+            messages: [],
+          };
 
           setConversations(
-            (prev) =>
-              prev.map(
-                (conversation) => {
+            (prev) => [
+              newConversation,
+              ...prev,
+            ]
+          );
 
-                  if (
-                    conversation.id !==
-                    activeConversation
-                  ) {
-                    return conversation;
-                  }
+          setActiveConversation(
+            backendThread.id
+          );
 
-                  const updated =
-                    [
+        } catch (error) {
+
+          console.error(
+            "Failed to create thread:",
+            error
+          );
+
+          return;
+        }
+      }
+
+      const currentMessage =
+        message;
+
+      setMessage("");
+
+      setLoading(true);
+
+      // =========================
+      // USER MESSAGE
+      // =========================
+      const userMessage = {
+
+        role: "user",
+
+        content: currentMessage,
+
+        timestamp:
+          new Date(),
+      };
+
+      // =========================
+      // EMPTY AI MESSAGE
+      // =========================
+      const aiMessage = {
+
+        role: "assistant",
+
+        content: "",
+
+        timestamp:
+          new Date(),
+      };
+
+      // =========================
+      // ADD BOTH MESSAGES
+      // =========================
+      setConversations(
+        (prev) =>
+          prev.map(
+            (conversation) => {
+
+              if (
+                conversation.id !==
+                currentThreadId
+              ) {
+                return conversation;
+              }
+
+              return {
+
+                ...conversation,
+
+                title:
+                  conversation.messages
+                    .length === 0
+                    ? currentMessage
+                        .slice(0, 30)
+                    : conversation.title,
+
+                messages: [
+                  ...(conversation.messages || []),
+
+                  userMessage,
+
+                  aiMessage,
+                ],
+              };
+            }
+          )
+      );
+
+      try {
+
+        await streamMessage(
+
+          currentMessage,
+
+          currentThreadId,
+
+          (chunk) => {
+
+            setConversations(
+              (prev) =>
+                prev.map(
+                  (
+                    conversation
+                  ) => {
+
+                    if (
+                      conversation.id !==
+                      currentThreadId
+                    ) {
+                      return conversation;
+                    }
+
+                    const messages = [
                       ...conversation.messages,
                     ];
 
-                  const lastMessage =
-                    updated[
-                      updated.length - 1
-                    ];
+                    const lastIndex =
+                      messages.length - 1;
 
-                  if (
-                    lastMessage.role ===
-                    "assistant"
-                  ) {
+                    // IMMUTABLE UPDATE
+                    messages[
+                      lastIndex
+                    ] = {
 
-                    lastMessage.content +=
-                      chunk;
+                      ...messages[
+                        lastIndex
+                      ],
+
+                      content:
+                        (
+                          messages[
+                            lastIndex
+                          ]?.content || ""
+                        ) + chunk,
+                    };
+
+                    return {
+
+                      ...conversation,
+
+                      messages,
+                    };
                   }
-
-                  return {
-                    ...conversation,
-                    messages:
-                      updated,
-                  };
-                }
-              )
-          );
-        }
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-    } finally {
-
-      setLoading(false);
-
-    }
-  };
-
-  // =========================
-  // UPDATE CHAT
-  // =========================
-  const updateConversationMessages =
-    (newMessage) => {
-
-      setConversations((prev) =>
-        prev.map((conversation) => {
-
-          if (
-            conversation.id !==
-            activeConversation
-          ) {
-            return conversation;
+                )
+            );
           }
+        );
 
-          const updatedMessages = [
-            ...conversation.messages,
-            newMessage,
-          ];
+      } catch (error) {
 
-          return {
-            ...conversation,
-            title:
-              conversation.messages
-                .length === 0
-                ? newMessage.content
-                    .slice(0, 30)
-                : conversation.title,
-            messages:
-              updatedMessages,
-          };
-        })
-      );
+        console.error(
+          "Streaming failed:",
+          error
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
     };
 
   // =========================
@@ -260,13 +352,13 @@ export default function Chat() {
           }
         />
 
-        {/* CHAT */}
+        {/* CHAT AREA */}
         <div className="flex-1 flex flex-col">
 
           {/* HEADER */}
           <div className="mb-6">
 
-            <h1 className="text-4xl font-bold">
+            <h1 className="text-4xl font-bold text-white">
               AI Assistant
             </h1>
 
@@ -279,26 +371,29 @@ export default function Chat() {
           {/* MESSAGES */}
           <div className="flex-1 overflow-y-auto space-y-6 pr-2">
 
-            {currentConversation
-              ?.messages.length === 0 && (
+            {(!currentConversation ||
+              currentConversation
+                ?.messages
+                ?.length === 0) && (
 
               <div className="h-full flex items-center justify-center text-slate-500 text-lg">
 
                 Start a conversation...
 
               </div>
-
             )}
 
             {currentConversation
-              ?.messages.map(
-                (msg, index) => (
+              ?.messages?.map(
+                (
+                  msg,
+                  index
+                ) => (
 
                 <ChatMessage
                   key={index}
                   message={msg}
                 />
-
               ))}
 
             {loading && (
@@ -316,23 +411,30 @@ export default function Chat() {
 
               <textarea
                 value={message}
+
                 onChange={(e) =>
                   setMessage(
                     e.target.value
                   )
                 }
+
                 onKeyDown={
                   handleKeyDown
                 }
+
                 rows={1}
+
                 placeholder="Message AI..."
+
                 className="flex-1 resize-none bg-transparent outline-none text-white"
               />
 
               <button
                 onClick={handleSend}
+
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl disabled:opacity-50"
+
+                className="bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl disabled:opacity-50 text-white"
               >
                 Send
               </button>

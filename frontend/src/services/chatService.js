@@ -1,5 +1,6 @@
 export async function streamMessage(
   message,
+  threadId,
   onChunk
 ) {
 
@@ -21,11 +22,19 @@ export async function streamMessage(
 
       body: JSON.stringify({
         message,
-        session_id:
-          "frontend-stream",
+        thread_id: Number(threadId),
       }),
     }
   );
+
+  // HANDLE ERRORS
+  if (!response.ok) {
+
+    const errorText =
+      await response.text();
+
+    throw new Error(errorText);
+  }
 
   const reader =
     response.body.getReader();
@@ -51,6 +60,7 @@ export async function streamMessage(
       );
 
     if (chunk) {
+
       onChunk(chunk);
     }
   }

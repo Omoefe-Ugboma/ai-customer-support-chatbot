@@ -1,22 +1,53 @@
 from sqlalchemy.orm import Session
-from app.models.chat import ChatMessage
+
+from app.models.chat_message import (
+    ChatMessage,
+)
 
 
-def save_message(db: Session, session_id: str, role: str, content: str):
-    msg = ChatMessage(
-        session_id=session_id,
+# =========================
+# SAVE MESSAGE
+# =========================
+def save_message(
+    db: Session,
+    thread_id: int,
+    role: str,
+    content: str,
+):
+
+    message = ChatMessage(
+        thread_id=thread_id,
         role=role,
-        content=content
+        content=content,
     )
-    db.add(msg)
+
+    db.add(message)
+
     db.commit()
 
+    db.refresh(message)
 
-def get_conversation(db: Session, session_id: str, limit: int = 10):
+    return message
+
+
+# =========================
+# GET CONVERSATION
+# =========================
+def get_conversation(
+    db: Session,
+    thread_id: int,
+    limit: int = 10,
+):
+
     return (
         db.query(ChatMessage)
-        .filter(ChatMessage.session_id == session_id)
-        .order_by(ChatMessage.created_at.desc())
+        .filter(
+            ChatMessage.thread_id
+            == thread_id
+        )
+        .order_by(
+            ChatMessage.created_at.asc()
+        )
         .limit(limit)
         .all()
     )

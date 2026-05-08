@@ -1,5 +1,5 @@
 from openai import OpenAI
-
+import time
 from app.core.config import settings
 
 from app.services.memory_service import (
@@ -15,13 +15,6 @@ from app.services.analytics_service import (
     log_interaction,
 )
 
-from app.core.logger import logger
-
-from app.utils.timer import (
-    start_timer,
-    end_timer,
-)
-
 client = OpenAI(
     api_key=settings.OPENAI_API_KEY
 )
@@ -30,20 +23,19 @@ client = OpenAI(
 async def generate_streaming_response(
     message: str,
     db,
-    session_id: str,
+    thread_id: int,
+    user_email: str,
 ):
 
-    start = start_timer()
-
     try:
-
+        start_time = time.time()
         # =========================
         # MEMORY
         # =========================
         history = get_conversation(
             db,
-            session_id,
-            limit=5
+            thread_id,
+            limit=5,
         )
 
         # =========================
@@ -53,49 +45,78 @@ async def generate_streaming_response(
             message
         )
 
-        # =========================
-        # PROMPT
-        # =========================
         messages = [
+
             {
                 "role": "system",
-                "content": (
-                    "You are a professional AI assistant. "
-                    "Use provided context carefully."
+
+                "content":
+                (
+                    "You are a smart AI assistant.\n"
+                    "Use the provided context "
+                    "to answer accurately.\n"
+                    "If context contains the answer,"
+                    " prioritize it.\n"
                 ),
             }
         ]
 
-        # CONTEXT
+        # =========================
+        # ADD CONTEXT
+        # =========================
         if context:
 
             messages.append({
+
                 "role": "system",
+
                 "content":
-                    f"Knowledge:\n{context}"
+                f"Context:\n{context}",
             })
 
+        # =========================
         # HISTORY
+        # =========================
         for msg in history:
 
             messages.append({
+
                 "role": msg.role,
+
                 "content": msg.content,
             })
 
+        # =========================
         # USER MESSAGE
+        # =========================
         messages.append({
+
             "role": "user",
+
             "content": message,
         })
 
         # =========================
-        # STREAM RESPONSE
+        # SAVE USER MESSAGE
+        # =========================
+        save_message(
+            db,
+            thread_id,
+            "user",
+            message,
+        )
+
+        # =========================
+        # OPENAI STREAM
         # =========================
         stream = client.chat.completions.create(
+
             model="gpt-4o-mini",
+
             messages=messages,
-            temperature=0.4,
+
+            temperature=0.3,
+
             stream=True,
         )
 
@@ -105,8 +126,7 @@ async def generate_streaming_response(
 
             delta = (
                 chunk.choices[0]
-                .delta
-                .content
+                .delta.content
             )
 
             if delta:
@@ -116,18 +136,11 @@ async def generate_streaming_response(
                 yield delta
 
         # =========================
-        # SAVE MEMORY
+        # SAVE AI RESPONSE
         # =========================
         save_message(
             db,
-            session_id,
-            "user",
-            message,
-        )
-
-        save_message(
-            db,
-            session_id,
+            thread_id,
             "assistant",
             full_response,
         )
@@ -135,23 +148,27 @@ async def generate_streaming_response(
         # =========================
         # ANALYTICS
         # =========================
-        response_time = end_timer(
-            start
-        )
-
         log_interaction(
+
             db=db,
-            user_email=session_id,
+
+            user_email=user_email,
+
             question=message,
+
             response=full_response,
-            response_time=response_time,
+
+             response_time=(
+                time.time() - start_time
+            ),
+
             category="chat",
         )
 
     except Exception as e:
 
-        logger.error(
+        print(
             f"Streaming error: {str(e)}"
         )
 
-        yield "Something went wrong."
+        return

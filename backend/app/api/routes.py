@@ -61,7 +61,7 @@ def chat_endpoint(
     reply = generate_chat_response(
         message=request.message,
         db=db,
-        session_id=current_user.email
+        thread_id=current_user.email
     )
 
     return ChatResponse(
@@ -83,10 +83,16 @@ async def stream_chat(
     async def event_generator():
 
         async for chunk in generate_streaming_response(
+
             message=request.message,
+
             db=db,
-            session_id=user.email,
+
+            thread_id=request.thread_id,
+
+            user_email=user.email,
         ):
+
             yield chunk
 
     return StreamingResponse(

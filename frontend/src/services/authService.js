@@ -1,30 +1,88 @@
 import api from "../api/axios";
 
-export async function loginUser(data) {
-  const form = new URLSearchParams();
 
-  form.append("username", data.email);
-  form.append("password", data.password);
+// =========================
+// REGISTER
+// =========================
+export async function registerUser(
+  email,
+  password
+) {
 
-  const response = await api.post(
-    "/auth/login",
-    form,
-    {
-      headers: {
-        "Content-Type":
-          "application/x-www-form-urlencoded",
-      },
-    }
-  );
+  try {
 
-  return response.data;
+    const response =
+      await api.post(
+        "/auth/register",
+        {
+          email,
+          password,
+        }
+      );
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error(
+      "Register error:",
+      error
+    );
+
+    throw error;
+  }
 }
 
-export async function registerUser(data) {
-  const response = await api.post(
-    "/auth/register",
-    data
-  );
 
-  return response.data;
+// =========================
+// LOGIN
+// =========================
+export async function loginUser(
+  email,
+  password
+) {
+
+  try {
+
+    // FORM DATA
+    const formData =
+      new URLSearchParams();
+
+    formData.append(
+      "username",
+      email
+    );
+
+    formData.append(
+      "password",
+      password
+    );
+
+    const response =
+      await api.post(
+
+        "/auth/login",
+
+        formData,
+
+        {
+          headers: {
+
+            "Content-Type":
+              "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+    return response.data;
+
+  } catch (error) {
+
+    console.error(
+      "Login error:",
+      error
+    );
+
+    throw error;
+  }
 }

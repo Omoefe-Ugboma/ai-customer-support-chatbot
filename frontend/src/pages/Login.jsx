@@ -1,60 +1,245 @@
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import {
+  useState,
+} from "react";
 
-import { loginUser } from "../services/authService";
-import { useAuth } from "../context/AuthContext";
+import {
+  useForm,
+} from "react-hook-form";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  loginUser,
+} from "../services/authService";
+
+import {
+  useAuth,
+} from "../context/AuthContext";
+
 
 export default function Login() {
-  const { register, handleSubmit } = useForm();
 
-  const navigate = useNavigate();
+  // =========================
+  // FORM
+  // =========================
+  const {
+    register,
+    handleSubmit,
+  } = useForm();
 
-  const { login } = useAuth();
+  // =========================
+  // NAVIGATION
+  // =========================
+  const navigate =
+    useNavigate();
 
-  const onSubmit = async (data) => {
-    try {
-      const response = await loginUser(data);
+  // =========================
+  // AUTH CONTEXT
+  // =========================
+  const { login } =
+    useAuth();
 
-      login(response.access_token);
+  // =========================
+  // STATE
+  // =========================
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-      navigate("/dashboard");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-    } catch (error) {
-      alert("Login failed");
-    }
-  };
+  // =========================
+  // SUBMIT
+  // =========================
+  const onSubmit =
+    async (data) => {
+
+      try {
+
+        setLoading(true);
+
+        setError("");
+
+        // LOGIN REQUEST
+        const response =
+          await loginUser(
+
+            data.email,
+
+            data.password
+          );
+
+        // SAVE TOKEN
+        login(
+
+          response.access_token,
+
+          {
+            email:
+              data.email,
+          }
+        );
+
+        // REDIRECT
+        navigate(
+          "/dashboard"
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Login error:",
+          error
+        );
+
+        setError(
+          error?.response?.data
+            ?.detail ||
+          "Invalid credentials"
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
 
   return (
-    <div className="flex items-center justify-center h-screen">
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="bg-slate-800 p-8 rounded w-96"
-      >
-        <h1 className="text-2xl mb-4">
-          Login
-        </h1>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
 
-        <input
-          {...register("email")}
-          placeholder="Email"
-          className="w-full p-2 mb-4 text-black"
-        />
+      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
 
-        <input
-          {...register("password")}
-          type="password"
-          placeholder="Password"
-          className="w-full p-2 mb-4 text-black"
-        />
+        {/* TITLE */}
+        <div className="mb-8 text-center">
 
-        <button
-          className="bg-blue-600 px-4 py-2 rounded w-full"
+          <h1 className="text-4xl font-bold text-white">
+
+            Welcome Back
+
+          </h1>
+
+          <p className="text-slate-400 mt-2">
+
+            Login to continue using AI SaaS
+
+          </p>
+
+        </div>
+
+        {/* ERROR */}
+        {error && (
+
+          <div className="bg-red-500/10 border border-red-500 text-red-400 p-3 rounded-xl mb-6">
+
+            {error}
+
+          </div>
+        )}
+
+        {/* FORM */}
+        <form
+          onSubmit={
+            handleSubmit(
+              onSubmit
+            )
+          }
+          className="space-y-6"
         >
-          Login
-        </button>
 
-      </form>
+          {/* EMAIL */}
+          <div>
+
+            <label className="block text-slate-300 mb-2">
+
+              Email
+
+            </label>
+
+            <input
+
+              {...register(
+                "email"
+              )}
+
+              type="email"
+
+              placeholder="Enter your email"
+
+              required
+
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+            />
+
+          </div>
+
+          {/* PASSWORD */}
+          <div>
+
+            <label className="block text-slate-300 mb-2">
+
+              Password
+
+            </label>
+
+            <input
+
+              {...register(
+                "password"
+              )}
+
+              type="password"
+
+              placeholder="Enter your password"
+
+              required
+
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 transition"
+            />
+
+          </div>
+
+          {/* BUTTON */}
+          <button
+            type="submit"
+
+            disabled={loading}
+
+            className="w-full bg-blue-600 hover:bg-blue-700 transition text-white py-3 rounded-xl font-semibold disabled:opacity-50"
+          >
+
+            {loading
+              ? "Signing In..."
+              : "Login"}
+
+          </button>
+
+        </form>
+
+        {/* REGISTER */}
+        <p className="text-slate-400 text-center mt-6">
+
+          Don’t have an account?{" "}
+
+          <Link
+            to="/register"
+            className="text-blue-400 hover:text-blue-300"
+          >
+
+            Register
+
+          </Link>
+
+        </p>
+
+      </div>
 
     </div>
   );

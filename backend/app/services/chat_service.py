@@ -35,7 +35,7 @@ client = OpenAI(
 def generate_chat_response(
     message: str,
     db: Session,
-    session_id: str
+    thread_id: str
 ):
 
     start = start_timer()
@@ -46,7 +46,7 @@ def generate_chat_response(
         # ⚡ CACHE
         # =========================
         cached_response = get_cached(
-            session_id,
+            thread_id,
             message
         )
 
@@ -60,7 +60,7 @@ def generate_chat_response(
         # =========================
         history = get_conversation(
             db,
-            session_id,
+            thread_id,
             limit=5
         )
 
@@ -125,14 +125,14 @@ def generate_chat_response(
         # =========================
         save_message(
             db,
-            session_id,
+            thread_id,
             "user",
             message
         )
 
         save_message(
             db,
-            session_id,
+            thread_id,
             "assistant",
             reply
         )
@@ -142,7 +142,7 @@ def generate_chat_response(
         # =========================
         log_interaction(
             db=db,
-            user_email=session_id,
+            user_email=thread_id,
             question=message,
             response=reply,
             response_time=response_time,
@@ -153,7 +153,7 @@ def generate_chat_response(
         # ⚡ CACHE SAVE
         # =========================
         set_cache(
-            session_id,
+            thread_id,
             message,
             reply
         )
